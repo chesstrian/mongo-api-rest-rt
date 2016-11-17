@@ -6,6 +6,7 @@ const logger = debug('api-io');
 
 
 export default (io) => {
+
   io.on('connection', (socket) => {
     socket.on('subscribe', (modelName) => {
       logger(util.format('Client subscribed to %s.', modelName));
@@ -18,10 +19,11 @@ export default (io) => {
     });
   });
 
-  return (Model) => {
+  return (Models) => {
+
     let api = Router({ caseSensitive: true });
 
-    const updateSubscribers = () => {
+    const updateSubscribers = (Model) => {
       Model.find(function (err, results) {
         if (err) return;
 
@@ -29,56 +31,60 @@ export default (io) => {
       });
     };
 
-    api.route(util.format('/%s', Model.modelName))
-      .get((req, res) => {
-        Model.find(function (err, results) {
-          if (err) return res.send(err);
+    if (!(Models instanceof Array)) Models = [Models];
 
-          return res.json(results);
-        });
-      })
-      .post((req, res) => {
-        const instance = new Model(req.body);
+    Models.forEach((Model) => {
+      api.route(util.format('/%s', Model.modelName))
+        .get((req, res) => {
+          Model.find(function (err, results) {
+            if (err) return res.send(err);
 
-        instance.save((err, result) => {
-          if (err) return res.send(err);
-
-          logger('New document saved on model %s.', Model.modelName);
-          updateSubscribers();
-          return res.json(result);
-        });
-      });
-
-    api.route(util.format('/%s/:id', Model.modelName))
-      .get((req, res) => {
-        Model.findById(req.params.id, (err, result) => {
-          if (err) return res.send(err);
-
-          return res.json(result);
-        })
-      })
-      .put((req, res) => {
-        Model.findById(req.params.id, (err, document) => {
-          if (err) return res.send(err);
-
-          Object.assign(document, req.body).save((err, result) => {
-            if(err) return res.send(err);
-
-            logger('Document updated on model %s.', Model.modelName);
-            updateSubscribers();
-            return res.json(result);
+            return res.json(results);
           });
         })
-      })
-      .delete((req, res) => {
-        Model.remove({_id: req.params.id}, (err, result) => {
-          if (err) return res.send(err);
+        .post((req, res) => {
+          const instance = new Model(req.body);
 
-          logger('Document deleted on model %s.', Model.modelName);
-          updateSubscribers();
-          return res.json(result);
+          instance.save((err, result) => {
+            if (err) return res.send(err);
+
+            logger('New document saved on model %s.', Model.modelName);
+            updateSubscribers(Model);
+            return res.json(result);
+          });
+        });
+
+      api.route(util.format('/%s/:id', Model.modelName))
+        .get((req, res) => {
+          Model.findById(req.params.id, (err, result) => {
+            if (err) return res.send(err);
+
+            return res.json(result);
+          })
         })
-      });
+        .put((req, res) => {
+          Model.findById(req.params.id, (err, document) => {
+            if (err) return res.send(err);
+
+            Object.assign(document, req.body).save((err, result) => {
+              if(err) return res.send(err);
+
+              logger('Document updated on model %s.', Model.modelName);
+              updateSubscribers(Model);
+              return res.json(result);
+            });
+          })
+        })
+        .delete((req, res) => {
+          Model.remove({_id: req.params.id}, (err, result) => {
+            if (err) return res.send(err);
+
+            logger('Document deleted on model %s.', Model.modelName);
+            updateSubscribers(Model);
+            return res.json(result);
+          })
+        });
+    });
 
     return api;
   };
