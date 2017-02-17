@@ -1,6 +1,6 @@
 {
   "name": "mongo-api-rest-rt",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "API Rest RealTime for Express with MongoDB",
   "main": "dst",
   "scripts": {

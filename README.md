@@ -84,6 +84,27 @@ $('button#unsubscribe').on('click', function () {
 
 ```
 
+### Custom notifications
+
+Performing updates to MongoDB from other places in your code is highly probable, in those cases use the emitter from the library and emit `notify` event with the Model:
+
+```js
+import { emitter } from 'mongo-api-rest-rt';
+
+import Model from '../../model/Model';
+
+const instance = new Model({
+  field1: 'value1',
+  field2: 'value2',
+});
+
+instance.save((err, document) => {
+  if (err) return;
+
+  emitter.emit('notify', Model);
+});
+```
+
 ## Test
 
 ```bash

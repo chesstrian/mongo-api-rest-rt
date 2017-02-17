@@ -1,7 +1,7 @@
 import bodyParser from 'body-parser';
-import express from 'express';
-import http from 'http';
+import Express from 'express';
 import mongoose from 'mongoose';
+import { Server } from 'http';
 import socketIo from 'socket.io';
 
 import apiIo from '../src';
@@ -10,8 +10,8 @@ import Example from './model/Example';
 mongoose.connect('mongodb://localhost:27017/test');
 mongoose.Promise = global.Promise;
 
-const app = express();
-const server = http.Server(app);
+const app = new Express();
+const server = new Server(app);
 const io = socketIo(server);
 
 const api = apiIo(io);

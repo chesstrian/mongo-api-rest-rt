@@ -1,9 +1,21 @@
+import EventEmitter from 'events';
 import { Router } from 'express';
 import util from 'util';
 
 import logger from './logger';
 
+
+export const emitter = new EventEmitter();
+
 export default (io) => {
+
+  emitter.on('notify', (Model) => {
+    Model.find((err, documents) => {
+      if (err) return;
+
+      io.to(Model.modelName).emit('notify', { model: Model.modelName, data: documents });
+    });
+  });
 
   io.on('connection', (socket) => {
     socket.on('subscribe', (modelName) => {
@@ -16,16 +28,6 @@ export default (io) => {
       socket.leave(modelName);
     });
   });
-
-  function updateSubscribers(Model) {
-    Model.find(function (err, results) {
-      if (err) return;
-
-      io.to(Model.modelName).emit('update', { model: Model.modelName, data: results });
-    });
-  }
-
-  exports.updateSubscribers = updateSubscribers;
 
   return (Models) => {
 
@@ -49,10 +51,11 @@ export default (io) => {
             if (err) return res.send(err);
 
             logger('New document saved on model %s.', Model.modelName);
-            updateSubscribers(Model);
+            emitter.emit('notify', Model);
             return res.json(result);
           });
-        });
+        })
+      ;
 
       api.route(util.format('/%s/:id', Model.modelName))
         .get((req, res) => {
@@ -70,7 +73,7 @@ export default (io) => {
               if(err) return res.send(err);
 
               logger('Document updated on model %s.', Model.modelName);
-              updateSubscribers(Model);
+              emitter.emit('notify', Model);
               return res.json(result);
             });
           })
@@ -80,10 +83,11 @@ export default (io) => {
             if (err) return res.send(err);
 
             logger('Document deleted on model %s.', Model.modelName);
-            updateSubscribers(Model);
+            emitter.emit('notify', Model);
             return res.json(result);
           })
-        });
+        })
+      ;
     });
 
     return api;

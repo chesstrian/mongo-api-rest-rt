@@ -2,10 +2,10 @@ import chai from 'chai';
 import chaiHttp from 'chai-http';
 import io from 'socket.io-client';
 
+import { emitter } from '../src';
+
 import server from '../res/server';
 import Example from '../res/model/Example';
-
-import { updateSubscribers } from '../src';
 
 chai.use(chaiHttp);
 chai.should();
@@ -37,7 +37,7 @@ describe('Tests for RealTime subscriptions', () => {
       const client = io.connect(url);
 
       client.once('connect', () => {
-        client.on('update', (res) => {
+        client.on('notify', (res) => {
           res.should.be.a('object');
           res.should.have.property('model');
           res.model.should.be.eql('example');
@@ -67,7 +67,7 @@ describe('Tests for RealTime subscriptions', () => {
       const change = { boolean: false };
 
       client.once('connect', () => {
-        client.on('update', (res) => {
+        client.on('notify', (res) => {
           res.should.be.a('object');
           res.should.have.property('model');
           res.model.should.be.eql('example');
@@ -98,7 +98,7 @@ describe('Tests for RealTime subscriptions', () => {
       const instance = new Example(example);
 
       client.once('connect', () => {
-        client.on('update', (res) => {
+        client.on('notify', (res) => {
           res.should.be.a('object');
           res.should.have.property('model');
           res.model.should.be.eql('example');
@@ -130,7 +130,7 @@ describe('Tests for RealTime subscriptions', () => {
       const instance = new Example(example);
 
       client.once('connect', () => {
-        client.on('update', (res) => {
+        client.on('notify', (res) => {
           res.should.be.a('object');
           res.should.have.property('model');
           res.model.should.be.eql('example');
@@ -143,8 +143,8 @@ describe('Tests for RealTime subscriptions', () => {
 
         client.emit('subscribe', 'example');
 
-        instance.save((err, document) => {
-          updateSubscribers(Example);
+        instance.save(() => {
+          emitter.emit('notify', Example);
         });
       });
     });
@@ -155,7 +155,7 @@ describe('Tests for RealTime subscriptions', () => {
       const client = io.connect(url);
 
       client.once('connect', () => {
-        client.on('update', (res) => {
+        client.on('notify', (res) => {
           res.should.be.a('object');
           res.should.have.property('model');
           res.model.should.be.eql('example');
