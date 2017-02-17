@@ -1,35 +1,35 @@
 import { Router } from 'express';
-import debug from 'debug';
 import util from 'util';
 
-const logger = debug('api-io');
-
+import logger from './logger';
 
 export default (io) => {
 
   io.on('connection', (socket) => {
     socket.on('subscribe', (modelName) => {
-      logger(util.format('Client subscribed to %s.', modelName));
+      logger('Client subscribed to %s.', modelName);
       socket.join(modelName);
     });
 
     socket.on('unsubscribe', (modelName) => {
-      logger(util.format('Client unsubscribed from %s.', modelName));
+      logger('Client unsubscribed from %s.', modelName);
       socket.leave(modelName);
     });
   });
 
+  function updateSubscribers(Model) {
+    Model.find(function (err, results) {
+      if (err) return;
+
+      io.to(Model.modelName).emit('update', { model: Model.modelName, data: results });
+    });
+  }
+
+  exports.updateSubscribers = updateSubscribers;
+
   return (Models) => {
 
     let api = Router({ caseSensitive: true });
-
-    const updateSubscribers = (Model) => {
-      Model.find(function (err, results) {
-        if (err) return;
-
-        io.to(Model.modelName).emit('update', { model: Model.modelName, data: results });
-      });
-    };
 
     if (!(Models instanceof Array)) Models = [Models];
 

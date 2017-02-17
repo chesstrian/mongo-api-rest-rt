@@ -5,6 +5,8 @@ import io from 'socket.io-client';
 import server from '../res/server';
 import Example from '../res/model/Example';
 
+import { updateSubscribers } from '../src';
+
 chai.use(chaiHttp);
 chai.should();
 
@@ -121,10 +123,35 @@ describe('Tests for RealTime subscriptions', () => {
         });
       });
     });
+
+    it('it should receive custom updates', (done) => {
+      const client = io.connect(url);
+
+      const instance = new Example(example);
+
+      client.once('connect', () => {
+        client.on('update', (res) => {
+          res.should.be.a('object');
+          res.should.have.property('model');
+          res.model.should.be.eql('example');
+          res.data.should.be.a('array');
+          res.data.length.should.be.eql(1);
+
+          client.disconnect();
+          done();
+        });
+
+        client.emit('subscribe', 'example');
+
+        instance.save((err, document) => {
+          updateSubscribers(Example);
+        });
+      });
+    });
   });
 
   describe('Unsubscriptions from updates', () => {
-    it('it should stopping receiving updates', (done) => {
+    it('it should stop receiving updates', (done) => {
       const client = io.connect(url);
 
       client.once('connect', () => {
